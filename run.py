@@ -2,7 +2,7 @@ from src.app import App
 
 def main():
     app = App()
-    app.start()
+    app.run()
 
 if __name__ == "__main__":
     main()
