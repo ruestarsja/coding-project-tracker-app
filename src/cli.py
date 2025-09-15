@@ -1,20 +1,35 @@
-from src.constants import DATA_COMMANDS
+def run_command(args:list):
+    subcommand = args[0]
+    match subcommand:
+        case "refresh":
+            pass
+        case "new":
+            pass
+        case "del":
+            pass
+        case "edit":
+            pass
+        case "get":
+            pass
+        case "list":
+            pass
+        case _:
+            raise ValueError(f"unknown subcommand '{subcommand}'")
 
-class CLI():
+def __refresh():
+    pass
 
-    def __init__(self, command_data_export:dict):
-        self.__command_data_export:dict = command_data_export
+def __new():
+    pass
 
-    def start(self):
-        pass
+def __del():
+    pass
 
-    def stop(self):
-        pass
+def __edit():
+    pass
 
-    def get_command(self):
-        command_id:int = int(input("Enter command id: "))
-        if command_id in DATA_COMMANDS:
-            self.__command_data_export["example"] = "needs command data"
-        else:
-            self.__command_data_export.clear()
-        return command_id
+def __get():
+    pass
+
+def __list():
+    pass
