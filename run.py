@@ -5,7 +5,6 @@ import sys
 
 def main():
     subcommands = (
-        "refresh",
         "new",
         "del",
         "edit",
@@ -15,20 +14,20 @@ def main():
 
     run = 'gui'
 
-    if sys.argv[1] in subcommands:
+    if len(sys.argv) > 1 and sys.argv[1] in subcommands:
         run = 'cli'
-
-    for arg in sys.argv[1:]:
-        match arg:
-            case "--help" | "-h":
-                run = None
-                print(f"{sys.argv[0]} help will be shown here before release version.")
-            case "--version" | "-v":
-                run = None
-                print(f"{sys.argv[0]} is not yet released.")
-            case _:
-                run = None
-                raise ValueError(f"unknown argument '{arg}'")
+    else:
+        for arg in sys.argv[1:]:
+            match arg:
+                case "--help" | "-h":
+                    run = None
+                    print(f"{sys.argv[0]} help will be shown here before release version.")
+                case "--version" | "-v":
+                    run = None
+                    print(f"{sys.argv[0]} is not yet released.")
+                case _:
+                    run = None
+                    raise ValueError(f"unknown argument '{arg}'")
 
     if run == 'gui':
         # launch gui

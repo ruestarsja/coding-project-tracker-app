@@ -1,10 +1,11 @@
 import json
+import os
 
 class App():
     
     def __init__(self):
 
-        self.__VALID_CATEGORIES = [
+        self.VALID_CATEGORIES = [
             "active",
             "occasional",
             "hiatused",
@@ -13,9 +14,17 @@ class App():
             "abandoned"
         ]
 
-        self.__projects_json_file_path:str = "data/projects.json"
+        self.__projects_json_dir_path:str = "data/"
+        self.__projects_json_file_name:str = "projects.json"
+        self.__projects_json_file_path:str = self.__projects_json_dir_path + self.__projects_json_file_name
         self.__projects:dict = {}
         self.__unsaved_changes = False
+    
+    def call_isolated(self, function, function_args:list):
+        self.load_projects_json()
+        output = function(*function_args)
+        self.dump_projects_json()
+        return output
     
     def load_projects_json(self) -> bool:
         try:
@@ -28,8 +37,14 @@ class App():
 
     def dump_projects_json(self) -> bool:
         if self.__unsaved_changes:
+
+            try:
+                os.makedirs(self.__projects_json_dir_path)
+            except FileExistsError:
+                pass
+
             with open(self.__projects_json_file_path, 'w') as projects_json_file:
-                json.dump(self.__projects, projects_json_file)
+                json.dump(self.__projects, projects_json_file, indent=4)
             self.__unsaved_changes = False
             return True
         return False
@@ -60,7 +75,7 @@ class App():
         return False
 
     def update_project_category(self, project_name:str, new_category:str) -> bool:
-        if project_name in self.__projects and new_category in self.__VALID_CATEGORIES:
+        if project_name in self.__projects and new_category in self.VALID_CATEGORIES:
             self.__projects[project_name]["category"] = new_category
             self.__unsaved_changes = True
             return True
@@ -74,7 +89,31 @@ class App():
         return False
 
     def get_project_info(self, project_name:str) -> dict|None:
-        return self.__projects.get(project_name)
+        if project_name in self.__projects:
+            info:dict = {}
+            info["name"] = project_name
+            for field, value in self.__projects[project_name].items():
+                info[field] = value
+            return info
+        return None
+
+    def get_project_fields(self, project_name:str, fields:list) -> dict|None:
+        if project_name in self.__projects:
+            project_fields:dict = {}
+            for field in fields:
+                if field == "name":
+                    project_fields[field] = project_name
+                elif field in self.__projects[project_name]:
+                    project_fields[field] = self.__projects[project_name][field]
+                else:
+                    return None
+            return project_fields
+        return None
+    
+    def get_project_name(self, project_name:str) -> str|None:
+        if project_name in self.__projects:
+            return project_name
+        return None
 
     def get_project_category(self, project_name:str) -> str|None:
         if project_name in self.__projects:
@@ -89,9 +128,23 @@ class App():
     def get_projects(self) -> dict:
         return self.__projects
     
-    def get_category_projects(self, category:str) -> dict:
-        category_projects:dict = {}
-        for project_name, project_dict in self.__projects.items():
-            if project_dict.get("category") == category:
-                category_projects[project_name] = project_dict
-        return category_projects
+    def get_category_projects(self, category:str) -> dict|None:
+        if category in self.VALID_CATEGORIES:
+            category_projects:dict = {}
+            for project_name, project_dict in self.__projects.items():
+                if project_dict.get("category") == category:
+                    category_projects[project_name] = {}
+                    for field, value in project_dict.items():
+                        if field != "category":
+                            category_projects[project_name][field] = value
+            return category_projects
+        return None
+
+    def get_category_project_names(self, category:str) -> list|None:
+        if category in self.VALID_CATEGORIES:
+            category_project_names:list = []
+            for project_name in self.__projects.keys():
+                if self.__projects[project_name].get("category") == category:
+                    category_project_names.append(project_name)
+            return category_project_names
+        return None
