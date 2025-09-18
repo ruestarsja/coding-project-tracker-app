@@ -45,7 +45,7 @@ def __new(args:list):
         case 0:
             raise ValueError("too few arguments")
         case 1 | 2 | 3:
-            output = __app.call_isolated(__app.create_project, args)
+            output = __app.call_isolated(__app.create_project, *args)
         case _:
             raise ValueError("too many arguments")
     match output:
@@ -68,7 +68,7 @@ def __del(args:list):
         case 0:
             raise ValueError("too few arguments")
         case 1:
-            output = __app.call_isolated(__app.delete_project, args)
+            output = __app.call_isolated(__app.delete_project, *args)
         case _:
             raise ValueError("too many arguments")
     match output:
@@ -97,22 +97,14 @@ def __edit(args:list):
         case 0 | 1 | 2:
             raise ValueError("too few arguments")
         case 3:
-            match args[1]:
-                case "name":
-                    output = __app.call_isolated(__app.update_project_name, [args[0], args[2]])
-                case "category":
-                    output = __app.call_isolated(__app.update_project_category, [args[0], args[2]])
-                case "description":
-                    output = __app.call_isolated(__app.update_project_description, [args[0], args[2]])
-                case _:
-                    raise ValueError(f"unknown field '{args[1]}'")
+            output = __app.call_isolated(__app.edit_project, *args)
         case _:
             raise ValueError("too many arguments")
     match output:
         case True:
             print(f"Updated project '{args[0]}' field '{args[1]}' to value '{args[2]}'")
         case False:
-            print(f"Failed to update project '{args[0]}' field '{args[1]}' to value '{args[2]}' (maybe it doesn't exist, or the specified value is invalid?)")
+            print(f"Failed to update project '{args[0]}' field '{args[1]}' to value '{args[2]}' (maybe it doesn't exist, the field doesn't exist, or the value is invalid?)")
         case _:
             print(f"WARNING: Received unexpected return value {output} from one of App.update_project_<>() functions")
 
@@ -131,22 +123,12 @@ def __get(args:list):
         case 0:
             raise ValueError("too few arguments")
         case 1:
-            output = __app.call_isolated(__app.get_project_info, args)
+            output = __app.call_isolated(__app.get_project, *args)
         case 2:
-            match args[1]:
-                case "name":
-                    output = __app.call_isolated(__app.get_project_name, [args[0]])
-                case "category":
-                    output = __app.call_isolated(__app.get_project_category, [args[0]])
-                case "description":
-                    output = __app.call_isolated(__app.get_project_description, [args[0]])
+            output = __app.call_isolated(__app.get_project_field, *args)
         case _:
-            output = __app.call_isolated(__app.get_project_fields, [args[0], args[1:]])
-    match output:
-        case None:
-            print(f"Failed to fetch fields from project '{args[0]}' (maybe it doesn't exist, or the specified fields are invalid?)")
-        case _:
-            print(json.dumps(output, indent=4))
+            output = __app.call_isolated(__app.get_project_fields, args[0], args[1:])
+    print(json.dumps(output, indent=4))
 
 def __list(args:list):
 
@@ -164,70 +146,69 @@ def __list(args:list):
     #      --verbose, -v: include all fields from each project
 
     output = None
-    match len(args):
-        case 0:
-            output = {}
-            for category in __app.VALID_CATEGORIES:
-                output[category] = __app.call_isolated(__app.get_category_project_names, [category])
-        case _:
-            category_args:list = []
-            style:str = 'compact'
-            field_args:list = []
-            if args[0] == "all" or args[0][0] == '-':
-                category_args = __app.VALID_CATEGORIES
-            i:int = 0
-            while i < len(args) and args[i][0] != '-':
-                category_args.append(args[i])
-                i += 1
-            if i < len(args):
-                match args[i]:
-                    case "--compact" | "-c":
-                        style = 'compact'
-                    case "--verbose" | "-v":
-                        style = 'verbose'
-                    case "--get" | "-g":
-                        style = 'get'
-                    case _:
-                        raise ValueError(f"unknown flag '{args[i]}'")
-                i += 1
-            while i < len(args):
-                field_args.append(args[i])
-                i += 1
-            match style:
-                case 'compact':
-                    if len(field_args) != 0:
-                        raise ValueError(f"flag '{args[-1 - len(field_args)]}' does not take args")
-                    output = {}
-                    for category in category_args:
-                        output[category] = __app.call_isolated(__app.get_category_project_names, [category])
-                case 'verbose':
-                    if len(field_args) != 0:
-                        raise ValueError(f"flag '{args[-1 - len(field_args)]}' does not take args")
-                    output = {}
-                    for category in category_args:
-                        output[category] = __app.call_isolated(__app.get_category_projects, [category])
-                case 'get':
-                    if len(field_args) == 0:
-                        raise ValueError(f"flag '{args[-1]}' takes at least one arg")
-                    output = {}
-                    for category in category_args:
-                        category_project_names:list = __app.call_isolated(__app.get_category_project_names, [category])
-                        category_projects:dict = {}
-                        for project_name in category_project_names:
-                            category_projects[project_name] = __app.call_isolated(__app.get_project_fields, [project_name, field_args])
-                        output[category] = category_projects
-
-    # getting individual projects may have returned None if asking for invalid fields; these get
-    # baked in rather than handled, so here, i check for them to handle it
-    if type(output) == dict and output != {}:
-        first_category:dict|list = output[list(output.keys())[0]]
-        if type(first_category) == dict and first_category != {}:
-            first_project:dict|None = first_category[list(first_category.keys())[0]]
-            if first_project == None:
-                output = None
-
-    match output:
-        case None:
-            print("ya done fucked up son")
-        case _:
-            print(json.dumps(output, indent=4))
+    style = 'compact'
+    use_all_categories = False
+    categories = []
+    fields = []
+    i:int = 0
+    while i < len(args) and args[i][0] != '-':
+        match args[i]:
+            case 'all':
+                use_all_categories = True
+            case _:
+                categories.append(args[i])
+        i += 1
+    if len(categories) == 0:
+        use_all_categories = True
+    if i < len(args):
+        match args[i]:
+            case '--compact' | '-c':
+                style = 'compact'
+            case '--get' | '-g':
+                style = 'get'
+            case '--verbose' | '-v':
+                style = 'verbose'
+            case _:
+                raise ValueError(f"unknown flag '{args[i]}'")
+        i += 1
+    while i < len(args):
+        fields.append(args[i])
+        i += 1
+    match style:
+        case 'compact':
+            if len(fields) > 0:
+                raise ValueError("compact flag does not take args")
+            match use_all_categories:
+                case True:
+                    output = __app.call_isolated(__app.list_all_compact)
+                case False:
+                    match len(categories):
+                        case 1:
+                            output = __app.call_isolated(__app.list_category_compact, categories[0])
+                        case _:
+                            output = __app.call_isolated(__app.list_categories_compact, categories)
+        case 'get':
+            if len(fields) == 0:
+                raise ValueError("get flag must take at least one arg")
+            match use_all_categories:
+                case True:
+                    output = __app.call_isolated(__app.list_all_get_fields, fields)
+                case False:
+                    match len(categories):
+                        case 1:
+                            output = __app.call_isolated(__app.list_category_get_fields, categories[0], fields)
+                        case _:
+                            output = __app.call_isolated(__app.list_categories_get_fields, categories, fields)
+        case 'verbose':
+            if len(fields) > 0:
+                raise ValueError("verbose flag does not take args")
+            match use_all_categories:
+                case True:
+                    output = __app.call_isolated(__app.list_all_verbose)
+                case False:
+                    match len(categories):
+                        case 1:
+                            output = __app.call_isolated(__app.list_category_verbose, categories[0])
+                        case _:
+                            output = __app.call_isolated(__app.list_categories_verbose, categories)
+    print(json.dumps(output, indent=4))
