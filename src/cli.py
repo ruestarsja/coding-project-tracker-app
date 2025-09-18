@@ -43,11 +43,11 @@ def __new(args:list):
     output = None
     match len(args):
         case 0:
-            raise ValueError("too few arguments")
+            raise SyntaxError("too few arguments")
         case 1 | 2 | 3:
             output = __app.call_isolated(__app.create_project, *args)
         case _:
-            raise ValueError("too many arguments")
+            raise SyntaxError("too many arguments")
     match output:
         case True:
             print(f"Created new project '{args[0]}'")
@@ -66,11 +66,11 @@ def __del(args:list):
     output = None
     match len(args):
         case 0:
-            raise ValueError("too few arguments")
+            raise SyntaxError("too few arguments")
         case 1:
             output = __app.call_isolated(__app.delete_project, *args)
         case _:
-            raise ValueError("too many arguments")
+            raise SyntaxError("too many arguments")
     match output:
         case True:
             print(f"Deleted project '{args[0]}'")
@@ -95,11 +95,11 @@ def __edit(args:list):
     output = None
     match len(args):
         case 0 | 1 | 2:
-            raise ValueError("too few arguments")
+            raise SyntaxError("too few arguments")
         case 3:
             output = __app.call_isolated(__app.edit_project, *args)
         case _:
-            raise ValueError("too many arguments")
+            raise SyntaxError("too many arguments")
     match output:
         case True:
             print(f"Updated project '{args[0]}' field '{args[1]}' to value '{args[2]}'")
@@ -121,7 +121,7 @@ def __get(args:list):
     output = None
     match len(args):
         case 0:
-            raise ValueError("too few arguments")
+            raise SyntaxError("too few arguments")
         case 1:
             output = __app.call_isolated(__app.get_project, *args)
         case 2:
@@ -177,7 +177,7 @@ def __list(args:list):
     match style:
         case 'compact':
             if len(fields) > 0:
-                raise ValueError("compact flag does not take args")
+                raise SyntaxError("compact flag does not take args")
             match use_all_categories:
                 case True:
                     output = __app.call_isolated(__app.list_all_compact)
@@ -189,7 +189,7 @@ def __list(args:list):
                             output = __app.call_isolated(__app.list_categories_compact, categories)
         case 'get':
             if len(fields) == 0:
-                raise ValueError("get flag must take at least one arg")
+                raise SyntaxError("get flag must take at least one arg")
             match use_all_categories:
                 case True:
                     output = __app.call_isolated(__app.list_all_get_fields, fields)
@@ -201,7 +201,7 @@ def __list(args:list):
                             output = __app.call_isolated(__app.list_categories_get_fields, categories, fields)
         case 'verbose':
             if len(fields) > 0:
-                raise ValueError("verbose flag does not take args")
+                raise SyntaxError("verbose flag does not take args")
             match use_all_categories:
                 case True:
                     output = __app.call_isolated(__app.list_all_verbose)
