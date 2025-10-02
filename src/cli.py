@@ -52,7 +52,7 @@ def __new(args:list):
         case True:
             print(f"Created new project '{args[0]}'")
         case False:
-            print(f"Failed to create new project '{args[0]}' (maybe it already exists?)")
+            print(f"Failed to create new project '{args[0]}' (maybe it already exists, or the category is invalid?)")
         case _:
             print(f"WARNING: Received unexpected return value {output} from App.create_project()")
 
