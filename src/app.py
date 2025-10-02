@@ -53,7 +53,7 @@ class App():
         return False
     
     def create_project(self, project_name:str, category:str="backlogged", description:str="") -> bool:
-        if project_name not in self.__projects:
+        if project_name not in self.__projects and category in self.__CATEGORIES:
             self.__projects[project_name] = {
                 "category": category,
                 "description": description
